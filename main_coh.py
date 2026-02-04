@@ -8,9 +8,7 @@ E = 5 * ω # Energy in the charger
 g_arr = np.round(np.arange(0.1, 1.0, 0.1),2)
 tlist = np.arange(0, 20, 0.1)
 
-print(g_arr)
-
-N_arr = [2, 4]
+N_arr = [2]
 M = 10
 ###############################################
 # Plot Battery energy <Eb> as function of time 
@@ -49,7 +47,19 @@ for N_idx, N in enumerate(N_arr):
 # Using the τ above, run sesolve again till τ
 # and find ρb(τ) = Tr_c[ρ(τ)]
 ###############################################
-# for N_idx, N in enumerate(N_arr):
-#     for g_idx, g in tqdm(enumerate(g_arr)):
-#         τ = τ_list[N_idx, g_idx]
-#         ρb(τ) = 
+for N_idx, N in enumerate(N_arr):
+    for g_idx, g in tqdm(enumerate(g_arr)):
+        τ = τ_list[N_idx][g_idx]
+        H = TC_fun(ω, ω0, j, M, g)
+        Hb = Hb_fun(ω0, j, M)
+        ψ0 = coh_state_fun(E, M, j)
+        result = qt.sesolve(H, ψ0, [0, τ])
+        ψτ = result.states[-1]
+        ρτ = qt.ket2dm(ψτ)
+        ρbτ = qt.ptrace(ρτ, 1)
+
+###############################################
+# With ρb(τ) = Tr_c[ρ(τ)], use erg_fun(pnm_matrix)
+# function to find ergotropy and erg_var_fun(pnm_matrix)
+# to find variance in ergotropy
+###############################################

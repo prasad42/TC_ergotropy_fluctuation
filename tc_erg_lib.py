@@ -78,9 +78,9 @@ def fock_state_fun(E: np.float128, M: np.int64, ω: np.float128, j):
 
     return fock_state
 
-def pnm_fun(n, m, ρ , Hb):
+def pnm_fun(n, m, ρ0 , Hb):
     '''
-    Use ρ and Hb to find passive state ρp and unitary to take there U. And then find joint probability of transition ρp to |Em> to Udag|Em> to |En>.
+    Use ρ0 and Hb to find passive state ρp and unitary to take there U. And then find joint probability of transition ρp to |Em> to Udag|Em> to |En>.
     '''
     pnm = None
 
@@ -102,3 +102,9 @@ def erg_fun(pnm_matrix):
     erg = None # Some function of pnm_matrix
 
     return erg
+
+def erg_var_fun(pnm_matrix):
+
+    erg_var = None # Some function of pnm_matrix
+
+    return erg_var
