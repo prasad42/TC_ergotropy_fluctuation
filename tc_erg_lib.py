@@ -43,9 +43,8 @@ def TC_fun(ω, ω0, j, M, g):
     Jm = qt.tensor(qt.qeye(M), qt.jmat(j, '-'))
     Jz = qt.tensor(qt.qeye(M), qt.jmat(j, 'z'))
     H0 = ω * a.dag() * a + ω0 * (j+Jz)
-    H1 = 1.0 / np.sqrt(2*j) * (a * Jp+ a.dag() * Jm)
+    H1 = a * Jp+ a.dag() * Jm
     H = H0 + g * H1
-    # H_even = H[::2,::2]
     
     return H
 
@@ -170,30 +169,61 @@ def pnm_matrix_fun(ρb0, Hb):
 
 def erg_fun(ρb0, Hb):
 
-    dim = np.shape(Hb)[0]
-    re_mat = np.zeros((dim, dim))
-    iden = np.identity(dim)
-
-    r_vals, r_vecs =ρb0.eigenstates()
+    ρp, _ = ρ_pass_fun(Hb, ρb0)
     
-    # r_list in descending order
-    idx = np.argsort(r_vals)[::-1]   # descending
-    r_vals = [r_vals[i] for i in idx]
-    r_vecs = np.column_stack([r_vecs[i].full().ravel() for i in idx])
-    # e_list in ascending order
-    e_vals, e_vecs = Hb.eigenstates()
-    idx = np.argsort(e_vals)   # ascending
-    e_vals = [e_vals[i] for i in idx]
-    e_vecs = np.column_stack([e_vecs[i].full().ravel() for i in idx])
-
-    re_dot_mat_minus_iden = (np.abs(np.conjugate(r_vecs).T * e_vecs)**2 - iden)
-
-    re_mat = np.outer(r_vals, e_vals)
-
-    erg_mat = re_mat * re_dot_mat_minus_iden
-    erg = np.sum(erg_mat)
+    erg = (Hb*ρb0).tr() - (Hb*ρp).tr()
 
     return erg
+
+# def erg_fun(rho, H):
+
+#     ketbra = lambda x: x*x.dag()
+#     vketbra = np.vectorize(ketbra,otypes=[qt.Qobj])
+
+#     # Calculates the passive state of density matrix corresponding to a given hamiltonian H
+#     rho = (rho + rho.dag())/2
+#     rho = rho/rho.tr()
+#     rvec = rho.eigenenergies()
+#     rvec_sort = np.sort(rvec)[::-1]
+#     eigsysH = H.eigenstates()
+#     eigergH_sort_index = np.argsort(eigsysH[0])
+#     eigvecH_sort = eigsysH[1][eigergH_sort_index]
+#     #print(eigvecH_sort)
+#     #vketbra(eigvecH_sort)
+#     rho_passive = np.sum(rvec_sort*vketbra(eigvecH_sort))
+#     # l = np.arange(-1,N)
+#     passerg = qt.expect(H,rho_passive)
+#     ergo = qt.expect(H, rho)-passerg
+    
+#     return ergo
+
+# def erg_fun(ρb0, Hb):
+
+#     dim = np.shape(Hb)[0]
+#     re_mat = np.zeros((dim, dim))
+#     iden = np.identity(dim)
+
+#     r_vals, r_vecs =ρb0.eigenstates()
+    
+#     # r_list in descending order
+#     idx = np.argsort(r_vals)[::-1]   # descending
+#     r_vals = [r_vals[i] for i in idx]
+#     r_vecs = np.column_stack([r_vecs[i].full().ravel() for i in idx])
+    
+#     # e_list in ascending order
+#     e_vals, e_vecs = Hb.eigenstates()
+#     idx = np.argsort(e_vals)   # ascending
+#     e_vals = [e_vals[i] for i in idx]
+#     e_vecs = np.column_stack([e_vecs[i].full().ravel() for i in idx])
+
+#     re_dot_mat_minus_iden = (np.abs(np.conjugate(r_vecs).T * e_vecs)**2 - iden)
+
+#     re_mat = np.outer(r_vals, e_vals)
+
+#     erg_mat = re_mat * re_dot_mat_minus_iden
+#     erg = np.sum(erg_mat)
+
+#     return erg
 
 def erg_var_fun(pnm_matrix):
 
