@@ -3,8 +3,7 @@ from tc_erg_lib import *
 
 N_arr = np.arange(2, 20, 2)
 M = 50
-ω0 = ω = 1.0
-E = 5 * ω # Energy in the charger 
+ω0 = ω = 1.0 
 g_arr = np.round(np.arange(0.1, 1.0, 0.1),2)
 tlist = np.arange(0, 20, 0.1)
 
@@ -17,6 +16,7 @@ g_arr = [0.1, 1.0, 2.0]
 ###############################################
 τ_list = []
 for N in N_arr:
+    E = N * ω # Energy in the charger
     j = N // 2
     τ_list1 = []
     for g in tqdm(g_arr):
@@ -53,6 +53,7 @@ for N in N_arr:
 print("Calculating Ergotropy")
 erg_list = []
 for N_idx, N in enumerate(N_arr):
+    E = N * ω # Energy in the charger
     erg_list1 = []
     for g_idx, g in tqdm(enumerate(g_arr)):
         τ = τ_list[N_idx][g_idx]
