@@ -4,7 +4,7 @@ import os
 import scipy.linalg as sl
 from tqdm import tqdm
 
-def Hb_fun(ω0, j, M):
+def Hb_full_fun(ω0, j, M):
     a  = qt.tensor(qt.destroy(M), qt.qeye(int(2*j+1)))
     Jp = qt.tensor(qt.qeye(M), qt.jmat(j, '+'))
     Jm = qt.tensor(qt.qeye(M), qt.jmat(j, '-'))
@@ -22,6 +22,11 @@ def Hc_fun(ω, j, M):
 
     return Hc
     
+def Hb_fun(ω0, j, M):
+    Jz = qt.jmat(j, 'z')
+    Hb = ω0 * (j+Jz)
+
+    return Hb
 
 def TC_fun(ω, ω0, j, M, g):
     '''
@@ -78,28 +83,85 @@ def fock_state_fun(E: np.float128, M: np.int64, ω: np.float128, j):
 
     return fock_state
 
-def pnm_fun(n, m, ρ0 , Hb):
+def ρ_pass_fun(H, ρ0):
+    '''
+    Find passive state
+
+    H : Hamiltonian of the system
+    
+    ρ0 : State of the system 
+
+    '''
+    r_vals, r_vecs =ρ0.eigenstates()
+    
+    N = len(r_vals)
+        
+    # r_list in descending order
+    # idx = np.argsort(r_vals)[::-1]
+    # r_vals = r_vals[idx]
+    # r_vecs = r_vecs[:, idx]
+    # e_list in ascending order
+    e_vals, e_vecs = H.eigenstates()
+
+    # unitary operator
+    U = 0
+    for j in range(N):
+        U += e_vecs[j] * r_vecs[j].dag()
+
+    U_dag = U.dag()
+
+    # Passive state
+    ρ_pass = U @ ρ0 @ U_dag
+
+    return ρ_pass, U
+
+def energy_projectors(H):
+    '''
+    Energy projectors of Hamiltonian
+    '''
+    e_vals, e_vecs = H.eigenstates()
+    projectors = [ket*ket.dag() for ket in e_vecs]
+    return e_vals, projectors
+
+def pnm_fun(proj_n, proj_m, ρb0 , Hb):
     '''
     Use ρ0 and Hb to find passive state ρp and unitary to take there U. And then find joint probability of transition ρp to |Em> to Udag|Em> to |En>.
     '''
-    pnm = None
+
+    ρ_pass, U = ρ_pass_fun(Hb,ρb0)
+
+    pnm = (proj_n*U.dag()*proj_m*ρ_pass*proj_m*U*proj_n).tr()
 
     return pnm
 
-def pnm_matrix_fun(j):
+def pnm_matrix_fun(ρb0, Hb):
 
     '''
     Use pnm_fun here to calculate the pnm matrix which will be useful to calculate ergotropy and ergotropy fluctuation.
     '''
+    assert np.shape(ρb0) == np.shape(Hb)
 
-    dim = int(2*j+1)
+    dim = np.shape(Hb)[0]
     pnm_matrix = np.zeros((dim, dim)) # Use pnm_fun here to calcualte for each possible transition
+    
+    evals, projectors = energy_projectors(Hb)
 
-    return pnm_matrix
+    for n in range(dim):
+        proj_n = projectors[n]
+        for m in range(dim):
+            proj_m = projectors[m]
+            pnm_matrix[n,m] = pnm_fun(proj_n, proj_m, ρb0, Hb)
 
-def erg_fun(pnm_matrix):
+    return pnm_matrix, evals
 
-    erg = None # Some function of pnm_matrix
+def erg_fun(ρb0, Hb):
+    
+    pnm_matrix, evals = pnm_matrix_fun(ρb0, Hb)
+
+    evals = np.array(evals)        # shape (N,)
+    evals_diff_mat = (evals[:, None] - evals[None, :])
+
+    erg = np.sum(evals_diff_mat.T * pnm_matrix)
 
     return erg
 
