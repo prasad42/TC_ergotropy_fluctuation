@@ -49,7 +49,7 @@ def TC_fun(ω, ω0, j, M, g):
     
     return H
 
-def coh_state_fun(E: np.float128, M: np.int64, j):
+def coh_state_fun(E: np.float128, M: np.int64, ω, j):
 
     '''
     Returns coherent state with given average energy 
@@ -59,7 +59,7 @@ def coh_state_fun(E: np.float128, M: np.int64, j):
     M: Photon cutoff
 
     '''
-    α = np.sqrt(E)
+    α = np.sqrt(E/ω)
 
     gnd_b_state = qt.fock(int(2*j+1), int(2*j))
 
@@ -79,7 +79,7 @@ def fock_state_fun(E: np.float128, M: np.int64, ω: np.float128, j):
     '''
     gnd_b_state = qt.fock(int(2*j+1), int(2*j))
 
-    fock_state = qt.tensor(qt.fock(M, int(E/ω)),gnd_b_state)
+    fock_state = qt.tensor(qt.fock(M, int(E/ω)), gnd_b_state)
 
     return fock_state
 
@@ -97,11 +97,14 @@ def ρ_pass_fun(H, ρ0):
     N = len(r_vals)
         
     # r_list in descending order
-    # idx = np.argsort(r_vals)[::-1]
-    # r_vals = r_vals[idx]
-    # r_vecs = r_vecs[:, idx]
+    idx = np.argsort(r_vals)[::-1]   # descending
+    r_vals = [r_vals[i] for i in idx]
+    r_vecs = [r_vecs[i] for i in idx]
     # e_list in ascending order
     e_vals, e_vecs = H.eigenstates()
+    idx = np.argsort(e_vals)   # ascending
+    e_vals = [e_vals[i] for i in idx]
+    e_vecs = [e_vecs[i] for i in idx]
 
     # unitary operator
     U = 0
@@ -154,14 +157,41 @@ def pnm_matrix_fun(ρb0, Hb):
 
     return pnm_matrix, evals
 
-def erg_fun(ρb0, Hb):
+# def erg_fun(ρb0, Hb):
     
-    pnm_matrix, evals = pnm_matrix_fun(ρb0, Hb)
+#     pnm_matrix, evals = pnm_matrix_fun(ρb0, Hb)
 
-    evals = np.array(evals)        # shape (N,)
-    evals_diff_mat = (evals[:, None] - evals[None, :])
+#     evals = np.array(evals)        # shape (N,)
+#     evals_diff_mat = (evals[:, None] - evals[None, :])
 
-    erg = np.sum(evals_diff_mat.T * pnm_matrix)
+#     erg = np.sum(evals_diff_mat.T * pnm_matrix)
+
+#     return erg
+
+def erg_fun(ρb0, Hb):
+
+    dim = np.shape(Hb)[0]
+    re_mat = np.zeros((dim, dim))
+    iden = np.identity(dim)
+
+    r_vals, r_vecs =ρb0.eigenstates()
+    
+    # r_list in descending order
+    idx = np.argsort(r_vals)[::-1]   # descending
+    r_vals = [r_vals[i] for i in idx]
+    r_vecs = np.column_stack([r_vecs[i].full().ravel() for i in idx])
+    # e_list in ascending order
+    e_vals, e_vecs = Hb.eigenstates()
+    idx = np.argsort(e_vals)   # ascending
+    e_vals = [e_vals[i] for i in idx]
+    e_vecs = np.column_stack([e_vecs[i].full().ravel() for i in idx])
+
+    re_dot_mat_minus_iden = (np.abs(np.conjugate(r_vecs).T * e_vecs)**2 - iden)
+
+    re_mat = np.outer(r_vals, e_vals)
+
+    erg_mat = re_mat * re_dot_mat_minus_iden
+    erg = np.sum(erg_mat)
 
     return erg
 
